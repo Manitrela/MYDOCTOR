@@ -1,98 +1,197 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from "expo-router";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { useState } from "react";
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { auth } from "../config/firebase";
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+export default function Login(){
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isRegister, setIsregister] = useState(false);
+
+  async function handleLoginRegister(){
+        if (email === "" || password === ""){
+            Alert.alert("Erreur ,  veuillez remplir tous les champs ");
+            return;
+        }
+
+        // CREATION DU COMPTE
+
+        if (isRegister){
+          // Creer l'utilisateur
+
+          try {
+
+            await createUserWithEmailAndPassword(
+              auth,
+              email,
+              password
+            );
+
+            // Si email et password existe et n'a pas encore un compte.
+            Alert.alert("Succés, Votre compte a été créer ")
+            router.replace("/home");
+          }catch(error:any){
+            if(error.code === "auth/email-already-in-use"){
+              Alert.alert("Erreur, Cette mail a déja un compte !");
+            }
+            else if (error.code === "auth/invalid-email"){
+              Alert.alert("Erreur, Cette mail n'est pas valide !");
+            }
+
+            else{
+              Alert.alert("Erreur, Impossible de créer le compte !");
+            }
+          }
+
+        // CONNEXION
+
+        }else{
+          
+          try{
+            await signInWithEmailAndPassword(
+              auth,
+              email,
+              password
+            );
+
+            router.replace("/home");
+          }catch(error:any){
+
+            if(error.code === "auth/invalid-credential"){
+              Alert.alert("Erreur, Mail ou mot de passe incorrect !")
+            }
+            else{
+              Alert.alert("Erreur, Une erreur est survenue !")
+            }
+          }
+        }
+
+
+        
+    }
+
+  function rafraichir(){
+    setEmail("");
+    setPassword("");
   }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
+    return(
+        <View style={style.container}>
+          {isRegister?
+            <Text style = {style.title}>
+              Register
+            </Text>:
+            <Text style = {style.title}>
+              Login
+            </Text>
+          }
+            
+            
+
+            <Text style = {style.label}>
+              Email
+            </Text>
+            <TextInput 
+              placeholder="email" 
+              placeholderTextColor= "#999"
+              keyboardType = "email-address"
+              value={email} 
+              autoCapitalize="none"
+              onChangeText={setEmail} 
+              style = {style.input}
+            />
+            
+            <Text style = {style.label}>
+              Password
+            </Text>
+            <TextInput 
+              placeholder="Mot de passe"
+              placeholderTextColor= "#999"
+              secureTextEntry = {true} 
+              value={password} 
+              onChangeText={setPassword} 
+              style = {style.input}
+            />
+
+
+            <Pressable onPress={handleLoginRegister} style = {style.button}>
+              {isRegister?
+                <Text style = {style.buttonText}> S'iscrire </Text> :
+                <Text style = {style.buttonText}> Se connecter </Text>}
+              
+            </Pressable>
+
+            <Pressable onPress={() => {setIsregister(!isRegister); rafraichir()}}>
+              {isRegister?<Text style = {style.isregister}> Deja un compte ?</Text> : <Text style = {style.isregister}>Pas encore un compte ?</Text>}
+            </Pressable>
+            
+        </View>
+    )
 }
 
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+const style = StyleSheet.create({
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container:{
+    flex:1,
     justifyContent: 'center',
-    flexDirection: 'row',
+    paddingHorizontal: 25,
+    backgroundColor :"#F5F9FF"
   },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+
+  title : {
+    fontSize: 32,
+    fontWeight: "bold",
+    textAlign: "center",
+    color: "#2563EB",
+    marginBottom: 32
   },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+
+  subTitle : {
+    fontSize: 22,
+    fontWeight: 600,
+    textAlign: "center",
+    marginBottom: 8,
+    color: "#333"
   },
-  title: {
-    textAlign: 'center',
+
+  label:{
+    fontSize: 16,
+    fontWeight: 600,
+    marginBottom: 8,
+    color : "#333"
   },
-  code: {
-    textTransform: 'uppercase',
+
+  input: {
+    height: 50,
+    borderWidth: 1,
+    borderColor: "#D0D7E2",
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    backgroundColor: "#FFFFFF",
+    marginBottom: 20,
+    fontSize: 16
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+
+  button : {
+    height: 50,
+    backgroundColor: "#2563EB",
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 10,
   },
-});
+
+  buttonText : {
+    color:"#FFFFFF",
+    fontSize: 17,
+    fontWeight: "bold"
+  },
+
+  isregister : {
+    color: "#7195e2",
+    marginTop: 10
+  }
+  
+})
