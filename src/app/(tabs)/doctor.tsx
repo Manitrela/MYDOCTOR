@@ -139,6 +139,7 @@ export default function doctor(){
 
                             <Text>
                                 {selectedDoctor.nom}
+                                {selectedDoctor.specialite}
                             </Text>
 
                             
